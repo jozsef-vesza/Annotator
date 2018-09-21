@@ -12,6 +12,9 @@ With annotation:
 
 Annotator leverages Apple's [SwiftSyntax](https://github.com/apple/swift-syntax) package for parsing/changing the source code.
 
+> Note: SwiftSyntax is still in development, and the API is not guaranteed to
+> be stable. It's subject to change without warning. Always review the changes made by Annotator.
+
 ## Installation
 
 Using Swift Package Manager:
