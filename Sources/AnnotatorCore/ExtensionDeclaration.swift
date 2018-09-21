@@ -14,6 +14,7 @@ struct ExtensionDeclaration {
     let closingBraces: String
     let leadingTrivia: Trivia?
     let trailingTrivia: Trivia?
+    let methodDeclarationList: MemberDeclBlockSyntax?
     
     var commentString: String {
         return "// MARK: - \(protocolName)"
@@ -64,6 +65,7 @@ struct ExtensionDeclaration {
                 return nil
         }
         
+        // Strip existing trivia to get the components of the extension declaration
         let components = node.description
             .components(separatedBy: .newlines)
             .filter { component in
@@ -72,6 +74,7 @@ struct ExtensionDeclaration {
             .first?
             .components(separatedBy: .whitespaces) ?? []
         
+        // Expected format: extension ClassName: ProtocolName {}
         guard components.count == 4 else { return nil }
         
         className = String(components[1].dropLast())
@@ -79,5 +82,6 @@ struct ExtensionDeclaration {
         closingBraces = components[3]
         leadingTrivia = node.leadingTrivia
         trailingTrivia = node.trailingTrivia
+        methodDeclarationList = node.child(at: 0)?.children.compactMap { return $0 as? MemberDeclBlockSyntax }.first
     }
 }

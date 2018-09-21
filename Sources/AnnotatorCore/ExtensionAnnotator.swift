@@ -27,7 +27,9 @@ final class ExtensionAnnotator: SyntaxRewriter {
         
         // ClassName
         let typeIdentifier = SyntaxFactory.makeTypeIdentifier(extensionDeclaration.className)
-        let protoName = SyntaxFactory.makeTypeIdentifier(extensionDeclaration.protocolName, leadingTrivia: Trivia.spaces(1))
+        let protoName = SyntaxFactory.makeTypeIdentifier(extensionDeclaration.protocolName,
+                                                         leadingTrivia: Trivia.spaces(1),
+                                                         trailingTrivia: Trivia.spaces(1))
         
         // ProtocolName
         let protoIdentifier = SyntaxFactory.makeInheritedTypeList([SyntaxFactory.makeInheritedType(
@@ -40,8 +42,8 @@ final class ExtensionAnnotator: SyntaxRewriter {
             inheritedTypeCollection: protoIdentifier)
         
         // {}
-        let members = SyntaxFactory.makeMemberDeclBlock(
-            leftBrace: SyntaxFactory.makeToken(TokenKind.leftBrace, presence: .present, leadingTrivia: Trivia.spaces(1)),
+        let emptyMembersList = SyntaxFactory.makeMemberDeclBlock(
+            leftBrace: SyntaxFactory.makeToken(TokenKind.leftBrace, presence: .present),
             members: SyntaxFactory.makeBlankMemberDeclList(),
             rightBrace: SyntaxFactory.makeToken(TokenKind.rightBrace, presence: closingBraceIsPresent ? .present : .missing))
         
@@ -53,7 +55,7 @@ final class ExtensionAnnotator: SyntaxRewriter {
             extendedType: typeIdentifier,
             inheritanceClause: inheritanceClause,
             genericWhereClause: nil,
-            members: members)
+            members: extensionDeclaration.methodDeclarationList ?? emptyMembersList)
         
         return annotated
     }
