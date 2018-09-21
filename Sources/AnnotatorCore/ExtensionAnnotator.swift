@@ -11,66 +11,23 @@ import SwiftSyntax
 final class ExtensionAnnotator: SyntaxRewriter {
     
     override func visit(_ node: CodeBlockItemSyntax) -> Syntax {
-        // Expected structure:
-        // extension ClassName: ProtocolName {}
         guard
-            node.description.contains("extension"),
-            node.description.contains(":") else {
+            let extensionDeclaration = ExtensionDeclaration(node: node),
+            let updatedLeadingTrivia = extensionDeclaration.updatedLeadingTrivia else {
                 return node
         }
         
-        let components = node.description
-            .components(separatedBy: .newlines)
-            .filter { component in
-                return component.count > 0 && !component.contains("//")
-            }
-            .first?
-            .components(separatedBy: .whitespaces) ?? []
-        
-        guard components.count == 4 else { return node }
-        
-        let className = String(components[1].dropLast())
-        let protocolName = String(components[2])
-        let closingBraceIsPresent = components[3].contains("}")
-        let commentString = "// MARK: - \(protocolName)"
-        let commentPiece = TriviaPiece.lineComment(commentString)
-        
-        let leadingTrivia: Trivia
-        
-        if let existingLeadingTrivia = node.leadingTrivia {
-            let existingAnnotation = existingLeadingTrivia.filter { (piece) -> Bool in
-                switch piece {
-                case .lineComment(commentString): return true
-                default: return false
-                }
-            }
-            
-            let annotationNeeded = existingAnnotation.count == 0
-            
-            if annotationNeeded {
-                leadingTrivia = existingLeadingTrivia
-                    .appending(commentPiece)
-                    .appending(.newlines(1))
-            } else {
-                return node
-            }
-            
-        } else {
-            leadingTrivia = Trivia.newlines(2)
-                .appending(commentPiece)
-                .appending(.newlines(1))
-        }
-        
-        let trailingTrivia = (node.trailingTrivia ?? Trivia.zero).appending(.spaces(1))
+        let closingBraceIsPresent = extensionDeclaration.closingBraces.contains("}")
+        let trailingTrivia = (extensionDeclaration.trailingTrivia ?? Trivia.zero).appending(.spaces(1))
         
         // MARK: - ProtocolName
         let extensionKeyword = SyntaxFactory.makeExtensionKeyword(
-            leadingTrivia: leadingTrivia,
+            leadingTrivia: updatedLeadingTrivia,
             trailingTrivia: trailingTrivia)
         
         // ClassName
-        let typeIdentifier = SyntaxFactory.makeTypeIdentifier(className)
-        let protoName = SyntaxFactory.makeTypeIdentifier(protocolName, leadingTrivia: Trivia.spaces(1))
+        let typeIdentifier = SyntaxFactory.makeTypeIdentifier(extensionDeclaration.className)
+        let protoName = SyntaxFactory.makeTypeIdentifier(extensionDeclaration.protocolName, leadingTrivia: Trivia.spaces(1))
         
         // ProtocolName
         let protoIdentifier = SyntaxFactory.makeInheritedTypeList([SyntaxFactory.makeInheritedType(
