@@ -15,19 +15,52 @@ final class ExtensionAnnotator: SyntaxRewriter {
         // extension ClassName: ProtocolName {}
         guard
             node.description.contains("extension"),
-            node.description.contains(":"),
-            node.leadingTriviaLength.utf8Length < TriviaPiece.lineComment("// MARK:").sourceLength.utf8Length else {
+            node.description.contains(":") else {
                 return node
         }
         
-        let components = node.description.components(separatedBy: " ")
+        let components = node.description
+            .components(separatedBy: .newlines)
+            .filter { component in
+                return component.count > 0 && !component.contains("//")
+            }
+            .first?
+            .components(separatedBy: .whitespaces) ?? []
+        
         guard components.count == 4 else { return node }
         
         let className = String(components[1].dropLast())
         let protocolName = String(components[2])
         let closingBraceIsPresent = components[3].contains("}")
-        let commentPiece = TriviaPiece.lineComment("// MARK: - \(protocolName)")
-        let leadingTrivia = Trivia.newlines(2).appending(commentPiece).appending(.newlines(1))
+        let commentString = "// MARK: - \(protocolName)"
+        let commentPiece = TriviaPiece.lineComment(commentString)
+        
+        let leadingTrivia: Trivia
+        
+        if let existingLeadingTrivia = node.leadingTrivia {
+            let existingAnnotation = existingLeadingTrivia.filter { (piece) -> Bool in
+                switch piece {
+                case .lineComment(commentString): return true
+                default: return false
+                }
+            }
+            
+            let annotationNeeded = existingAnnotation.count == 0
+            
+            if annotationNeeded {
+                leadingTrivia = existingLeadingTrivia
+                    .appending(commentPiece)
+                    .appending(.newlines(1))
+            } else {
+                return node
+            }
+            
+        } else {
+            leadingTrivia = Trivia.newlines(2)
+                .appending(commentPiece)
+                .appending(.newlines(1))
+        }
+        
         let trailingTrivia = (node.trailingTrivia ?? Trivia.zero).appending(.spaces(1))
         
         // MARK: - ProtocolName
