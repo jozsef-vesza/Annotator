@@ -15,8 +15,5 @@ let package = Package(
         .target(
             name: "AnnotatorCore",
             dependencies: ["SwiftSyntax"]),
-        .testTarget(
-            name: "AnnotatorTests",
-            dependencies: ["Annotator"]),
     ]
 )
