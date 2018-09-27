@@ -27,6 +27,18 @@ $ cp -f .build/release/Annotator /usr/local/bin/annotator
 ```
 
 ## Usage
+
+Annotator takes a configuration JSON as input, which has to specify the root folder you plan to annotate. It may also contain a list of excluded files, as shown in the example below:
+```json
+// config.json
+{
+    "projectFolderPath": "path_to_project_root_folder",
+    "excludedFileNames": [
+        "ExcludedFile.swift"
+    ]
+}
 ```
-$ annotator path_to_project_root_folder
+Once the configuration file is ready, supply it to Annotator as a parameter:
+```
+$ annotator path_to_configuration_json_file
 ```
