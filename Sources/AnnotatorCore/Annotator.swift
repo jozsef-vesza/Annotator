@@ -25,6 +25,18 @@ struct Config: Codable {
     let projectFolderPath: String
     let excludedFileNames: [String]?
     let excludedSubfolders: [String]?
+    
+    var excludedFilesRegex: NSRegularExpression? {
+        let excludedFilesPattern = "(\(excludedFileNames?.joined(separator: ":") ?? ""))"
+        guard let regex = try? NSRegularExpression(pattern: "^(/?.*\\/)?\(excludedFilesPattern)") else { return nil }
+        return regex
+    }
+    
+    var excludedFoldersRegex: NSRegularExpression? {
+        let excludedFoldersPattern = "(\(excludedSubfolders?.joined(separator: ":") ?? ""))"
+        guard let regex = try? NSRegularExpression(pattern: "^(/?\(excludedFoldersPattern)\\/).*") else { return nil }
+        return regex
+    }
 }
 
 enum AnnotatorError: Swift.Error {
@@ -83,26 +95,15 @@ public final class Annotator {
         return enumerator.allObjects
             .filter { element in
                 guard let stringValue = element as? String else { return false }
+                let range = NSRange(stringValue.startIndex ..< stringValue.endIndex, in: stringValue)
                 
-                let components = stringValue.split(separator: "/")
-                guard let fileName = components.last else { return false }
+                let folderMatches = config.excludedFoldersRegex?.matches(in: stringValue, options: [], range: range) ?? []
+                guard folderMatches.count == 0 else { return false }
                 
-                let excludedComponents = components.dropLast().filter { component in
-                    if let excludedSubfolders = config.excludedSubfolders, excludedSubfolders.contains(String(component)) {
-                        return true
-                    }
-                    
-                    return false
-                }
-                
-                guard excludedComponents.count == 0 else { return false }
-                
-                if let excludedFileNames = config.excludedFileNames, excludedFileNames.contains(String(fileName)) {
-                    return false
-                }
+                let fileMatches = config.excludedFilesRegex?.matches(in: stringValue, options: [], range: range) ?? []
+                guard fileMatches.count == 0 else { return false }
                 
                 let url = URL(fileURLWithPath: stringValue)
-                
                 return url.pathExtension == "swift"
             }
             .compactMap { $0 as? String }
