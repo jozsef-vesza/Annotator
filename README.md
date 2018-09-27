@@ -1,6 +1,6 @@
 # Annotator
 
-Annotator is a command line tool for annotating class extensions defined for protocol conformance. Adding these comments can ease navigation in source files (especially large ones), but can be quite cumbersome, so I decided to automate it.
+Annotator is a command line tool for annotating class extensions defined for protocol conformance. Adding these comments can ease navigation in source files (especially large ones), but can be quite cumbersome, so I decided to make a tool for it.
 
 Without annotation:
 
