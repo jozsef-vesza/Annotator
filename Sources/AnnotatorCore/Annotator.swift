@@ -21,8 +21,15 @@
 import Foundation
 import SwiftSyntax
 
+struct Config: Codable {
+    let projectFolderPath: String
+    let excludedFileNames: [String]?
+}
+
 enum AnnotatorError: Swift.Error {
-    case missingProjectFolder
+    case missingConfigFileParameter
+    case missingConfigFile
+    case invalidConfigFileFormatError
 }
 
 public final class Annotator {
@@ -34,10 +41,26 @@ public final class Annotator {
     
     public func run() throws {
         guard arguments.count > 0 else {
-            throw AnnotatorError.missingProjectFolder
+            print("Please specify config file parameter")
+            throw AnnotatorError.missingConfigFileParameter
         }
         
-        let projectFolder = arguments[1]
+        let configFilePath = arguments[1]
+        
+        guard FileManager.default.fileExists(atPath: configFilePath),
+            let configData = try? Data(contentsOf: URL(fileURLWithPath: configFilePath)) else {
+                print("Config file doesn't exist")
+                throw AnnotatorError.missingConfigFile
+        }
+        
+        let jsonDecoder = JSONDecoder()
+        
+        guard let config = try? jsonDecoder.decode(Config.self, from: configData) else {
+            print("Unable to parse config file; the JSON might be invalid.")
+            throw AnnotatorError.invalidConfigFileFormatError
+        }
+        
+        let projectFolder = config.projectFolderPath
         
         let enumerator = FileManager.default.enumerator(atPath: projectFolder)
         let annotator = ExtensionAnnotator()
@@ -45,6 +68,9 @@ public final class Annotator {
         enumerator?.allObjects
             .filter { element in
                 guard let stringValue = element as? String else { return false }
+                if let excludedFileNames = config.excludedFileNames, excludedFileNames.contains(stringValue) {
+                    return false
+                }
                 return URL(fileURLWithPath: stringValue).pathExtension == "swift"
             }
             .forEach { element in
