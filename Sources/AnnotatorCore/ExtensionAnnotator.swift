@@ -62,7 +62,7 @@ final class ExtensionAnnotator: SyntaxRewriter {
         return leadingTrivia
             .filter { (piece) -> Bool in
                 switch piece {
-                case .lineComment(annotationForProtocol(named: protocolName)): return true
+                case .lineComment(let commentString) where commentString.contains(protocolName): return true
                 default: return false
                 }
             }
