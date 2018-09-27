@@ -24,6 +24,7 @@ import SwiftSyntax
 struct Config: Codable {
     let projectFolderPath: String
     let excludedFileNames: [String]?
+    let excludedSubfolders: [String]?
 }
 
 enum AnnotatorError: Swift.Error {
@@ -61,28 +62,49 @@ public final class Annotator {
         }
         
         let projectFolder = config.projectFolderPath
-        
-        let enumerator = FileManager.default.enumerator(atPath: projectFolder)
         let annotator = ExtensionAnnotator()
         
-        enumerator?.allObjects
+        includedFilePaths(in: projectFolder, using: config).forEach { element in
+            let filePath = projectFolder.appending("/\(element)")
+            let url = URL(fileURLWithPath: filePath)
+            do {
+                let sourceFile = try SyntaxTreeParser.parse(url)
+                let annotatedText = annotator.visit(sourceFile)
+                try annotatedText.description.write(toFile: filePath, atomically: true, encoding: .utf8)
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
+    }
+    
+    private func includedFilePaths(in projectFolder: String, using config: Config) -> [String] {
+        guard let enumerator = FileManager.default.enumerator(atPath: projectFolder) else { return [] }
+        
+        return enumerator.allObjects
             .filter { element in
                 guard let stringValue = element as? String else { return false }
-                if let excludedFileNames = config.excludedFileNames, excludedFileNames.contains(stringValue) {
+                
+                let components = stringValue.split(separator: "/")
+                guard let fileName = components.last else { return false }
+                
+                let excludedComponents = components.dropLast().filter { component in
+                    if let excludedSubfolders = config.excludedSubfolders, excludedSubfolders.contains(String(component)) {
+                        return true
+                    }
+                    
                     return false
                 }
-                return URL(fileURLWithPath: stringValue).pathExtension == "swift"
-            }
-            .forEach { element in
-                let filePath = projectFolder.appending("/\(element)")
-                let url = URL(fileURLWithPath: filePath)
-                do {
-                    let sourceFile = try SyntaxTreeParser.parse(url)
-                    let annotatedText = annotator.visit(sourceFile)
-                    try annotatedText.description.write(toFile: filePath, atomically: true, encoding: .utf8)
-                } catch let error {
-                    print(error.localizedDescription)
+                
+                guard excludedComponents.count == 0 else { return false }
+                
+                if let excludedFileNames = config.excludedFileNames, excludedFileNames.contains(String(fileName)) {
+                    return false
                 }
-        }
+                
+                let url = URL(fileURLWithPath: stringValue)
+                
+                return url.pathExtension == "swift"
+            }
+            .compactMap { $0 as? String }
     }
 }
