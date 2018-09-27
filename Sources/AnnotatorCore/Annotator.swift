@@ -97,7 +97,7 @@ public final class Annotator {
         return enumerator.allObjects
             .filter { element in
                 guard let stringValue = element as? String else { return false }
-                let range = NSRange(stringValue.startIndex ..< stringValue.endIndex, in: stringValue)
+                let range = NSRange(location: 0, length: stringValue.utf16.count)
                 
                 let folderMatches = config.excludedFoldersRegex?.matches(in: stringValue, options: [], range: range) ?? []
                 guard folderMatches.count == 0 else { return false }
