@@ -27,13 +27,15 @@ struct Config: Codable {
     let excludedSubfolders: [String]?
     
     var excludedFilesRegex: NSRegularExpression? {
-        let excludedFilesPattern = "(\(excludedFileNames?.joined(separator: ":") ?? ""))"
+        guard let excludedFileNames = excludedFileNames else { return nil }
+        let excludedFilesPattern = "(\(excludedFileNames.joined(separator: ":")))"
         guard let regex = try? NSRegularExpression(pattern: "^(/?.*\\/)?\(excludedFilesPattern)") else { return nil }
         return regex
     }
     
     var excludedFoldersRegex: NSRegularExpression? {
-        let excludedFoldersPattern = "(\(excludedSubfolders?.joined(separator: ":") ?? ""))"
+        guard let excludedSubfolders = excludedSubfolders else { return nil }
+        let excludedFoldersPattern = "(\(excludedSubfolders.joined(separator: ":")))"
         guard let regex = try? NSRegularExpression(pattern: "^(/?\(excludedFoldersPattern)\\/).*") else { return nil }
         return regex
     }
